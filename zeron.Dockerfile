@@ -27,4 +27,7 @@ EXPOSE 3000
 
 ENV PORT 3000
 
-CMD ["npm", "run", "start-docker"]
+ARG BASE_PATH
+ENV BASE_PATH ${BASE_PATH}
+
+CMD ["yarn", "start-docker"]
