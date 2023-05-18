@@ -43,7 +43,8 @@ build_next:
   stage: build
   image: node:18-alpine
   script:
-    - yarn
+    - yarn install
+    - mkdir -p ./.yarn/unplugged/esbuild-npm-0.17.19-f690397756/node_modules/esbuild/lib/pnpapi-@netlify/
     - yarn build-docker
   artifacts:
     paths:
@@ -73,5 +74,6 @@ deploy_standalone:
       /kaniko/executor
       --context $CI_PROJECT_DIR
       --dockerfile $CI_PROJECT_DIR/zeron.Dockerfile
+      --build-arg "BASE_PATH=${BASE_PATH}"
       --destination $DOCKER_IMAGE_PATH
       $KANIKO_ADD_OPTIONS
