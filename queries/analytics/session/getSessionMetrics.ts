@@ -82,10 +82,11 @@ async function mongodbQuery(
   const resetDate = new Date(website?.resetAt || website?.createdAt);
   const { startDate, endDate, column, filters = {} } = criteria;
   const { parseMongoFilter, client } = prisma;
-  const mongoFilter = parseMongoFilter(filters);
+  const { lookupFilterAggregation, matchFilterAggregation } = parseMongoFilter(filters);
   return await client.websiteEvent.aggregateRaw({
     pipeline: [
-      mongoFilter,
+      lookupFilterAggregation,
+      matchFilterAggregation,
       {
         $match: {
           $expr: {

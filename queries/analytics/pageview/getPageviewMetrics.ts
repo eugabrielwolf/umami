@@ -132,7 +132,6 @@ async function mongodbQuery(
     endDate,
     column === 'event_name' ? EVENT_TYPE.customEvent : EVENT_TYPE.pageView,
   ];
-
   let excludeDomainMongo: any = '';
 
   if (column === 'referrer_domain') {
@@ -141,10 +140,11 @@ async function mongodbQuery(
     };
     params.push(website.domain);
   }
-  const mongoFilter = parseMongoFilter(filters);
+  const { lookupFilterAggregation, matchFilterAggregation } = parseMongoFilter(filters);
   return await client.websiteEvent.aggregateRaw({
     pipeline: [
-      mongoFilter,
+      lookupFilterAggregation,
+      matchFilterAggregation,
       {
         $match: {
           $expr: {
