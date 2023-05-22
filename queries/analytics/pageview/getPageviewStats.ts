@@ -143,17 +143,9 @@ async function mongodbQuery(
   const { getDateQuery, client, parseMongoFilter } = prisma;
   const website = await loadWebsite(websiteId);
   const resetDate = new Date(website?.resetAt || website?.createdAt);
-  const mongoFilter = parseMongoFilter(filters);
+  const { lookupFilterAggregation, matchFilterAggregation } = parseMongoFilter(filters);
   let sessionInclude = '';
   let sessionGroupAggregation: any = { $match: {} };
-  const sessionLookUpAggregation: any = {
-    $lookup: {
-      from: 'session',
-      foreignField: '_id',
-      localField: 'session_id',
-      as: 'session',
-    },
-  };
   let sessionProjectAggregation: any = { $match: {} };
 
   if (count !== '*') {
@@ -174,8 +166,8 @@ async function mongodbQuery(
   }
   return await client.websiteEvent.aggregateRaw({
     pipeline: [
-      sessionLookUpAggregation,
-      mongoFilter,
+      lookupFilterAggregation,
+      matchFilterAggregation,
       {
         $match: {
           $expr: {

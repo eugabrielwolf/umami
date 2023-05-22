@@ -142,9 +142,14 @@ function parseFilters(
   };
 }
 
-function parseMongoFilter(filters: { [key: string]: any } = {}) {
+function parseMongoFilter(filters: { [key: string]: any } = {}): {
+  lookupFilterAggregation: object;
+  matchFilterAggregation: object;
+} {
   const query = {};
-
+  let lookupAggregation: object = {
+    $match: {},
+  };
   for (let k in filters) {
     const v = filters[k];
     if (v !== undefined) {
@@ -154,11 +159,20 @@ function parseMongoFilter(filters: { [key: string]: any } = {}) {
       }
       if (k === 'browser' || k === 'os' || k === 'device' || k === 'language') {
         k = 'session.' + k;
+        lookupAggregation = {
+          $lookup: {
+            from: 'session',
+            foreignField: '_id',
+            localField: 'session_id',
+            as: 'session',
+          },
+        };
       }
       query[k] = v;
     }
   }
-  return { $match: query };
+  const matchAggregation: object = { $match: query };
+  return { lookupFilterAggregation: lookupAggregation, matchFilterAggregation: matchAggregation };
 }
 
 async function rawQuery(query: string, params: never[] = []): Promise<any> {

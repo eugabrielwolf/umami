@@ -131,11 +131,12 @@ async function mongodbQuery(
   const { getDateQuery, parseMongoFilter, client } = prisma;
   const website = await loadWebsite(websiteId);
   const resetDate = new Date(website?.resetAt || website?.createdAt);
-  const mongoFilter = parseMongoFilter(filters);
+  const { lookupFilterAggregation, matchFilterAggregation } = parseMongoFilter(filters);
 
   return await client.websiteEvent.aggregateRaw({
     pipeline: [
-      mongoFilter,
+      lookupFilterAggregation,
+      matchFilterAggregation,
       {
         $match: {
           $expr: {

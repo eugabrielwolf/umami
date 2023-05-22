@@ -145,7 +145,7 @@ async function mongoQuery(
   const { client, parseMongoFilter } = prisma;
   const website = await loadWebsite(websiteId);
   const resetDate = new Date(website?.resetAt || website?.createdAt);
-  const mongoFilter = parseMongoFilter(filters);
+  const { lookupFilterAggregation, matchFilterAggregation } = parseMongoFilter(filters);
 
   let joinAggregation: any = { match: {} };
   let matchAggregation: any = { match: {} };
@@ -178,7 +178,8 @@ async function mongoQuery(
   }
   return await client.websiteEvent.aggregateRaw({
     pipeline: [
-      mongoFilter,
+      lookupFilterAggregation,
+      matchFilterAggregation,
       {
         $match: {
           $expr: {
