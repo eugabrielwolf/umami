@@ -1,0 +1,154 @@
+{{- $umami := .Values -}}
+{{- $credentialSecretName := include "umami.credentials-secret-name" $ -}}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . | quote }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: umami
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ $umami.replicaCount }}
+  {{- if $umami.updateStrategy }}
+  strategy: {{- toYaml $umami.updateStrategy | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: umami
+  template:
+    metadata:
+      annotations:
+        {{- if $umami.podAnnotations }}
+        {{- include "common.tplvalues.render" (dict "value" $umami.podAnnotations "context" $) | nindent 8 }}
+        {{- end }}
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: umami
+        {{- if $umami.podLabels }}
+        {{- include "common.tplvalues.render" (dict "value" $umami.podLabels "context" $) | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ template "umami.serviceAccountName" . }}
+      {{- include "umami.imagePullSecrets" . | nindent 6 }}
+      {{- if $umami.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" $umami.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if $umami.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" $umami.affinity "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if $umami.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" $umami.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if $umami.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" $umami.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if $umami.priorityClassName }}
+      priorityClassName: {{ $umami.priorityClassName | quote }}
+      {{- end }}
+      {{- if $umami.schedulerName }}
+      schedulerName: {{ $umami.schedulerName | quote }}
+      {{- end }}
+      {{- if $umami.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" $umami.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if $umami.podSecurityContext.enabled }}
+      securityContext: {{- omit $umami.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $umami.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ $umami.terminationGracePeriodSeconds }}
+      {{- end }}
+      initContainers:
+        {{- if $umami.initContainers }}
+        {{- include "common.tplvalues.render" (dict "value" $umami.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: main
+          image: {{ template "umami.image" . }}
+          imagePullPolicy: {{ $umami.image.pullPolicy }}
+          {{- if $umami.containerSecurityContext.enabled }}
+          securityContext: {{- omit $umami.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if $umami.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" $umami.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if $umami.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" $umami.command "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if $umami.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" $umami.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if $umami.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" $umami.args "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if $umami.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" $umami.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ZERON_DEBUG
+              value: {{ ternary "true" "false" (or $umami.image.debug $umami.diagnosticMode.enabled) | quote }}
+            - name: MONGO_DB_URL
+              value: {{ .Values.mongodb.url | quote }}
+            - name: MONGO_DB_NAME
+              value: {{ .Values.mongodb.db | quote }}
+            - name: MONGO_DB_USERNAME
+              value: {{ .Values.mongodb.username | quote }}
+            - name: MONGO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $credentialSecretName | quote }}
+                  key: "mongodb-password"
+            - name: BASE_PATH
+              value: {{ $umami.basePath }}
+          envFrom:
+            {{- if $umami.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ include "common.tplvalues.render" (dict "value" $umami.extraEnvVarsCM "context" $) }}
+            {{- end }}
+            {{- if $umami.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ include "common.tplvalues.render" (dict "value" $umami.extraEnvVarsSecret "context" $) }}
+            {{- end }}
+          {{- if $umami.resources }}
+          resources: {{- toYaml $umami.resources | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 3000
+          {{- if not $umami.diagnosticMode.enabled }}
+          {{- if $umami.livenessProbe.enabled }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit $umami.livenessProbe "enabled") "context" $) | nindent 12 }}
+            httpGet:
+              path: {{ printf "%s/api/heartbeat" $umami.basePath }}
+              port: http
+              scheme: HTTP
+          {{- else if $umami.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" $umami.customLivenessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if $umami.readinessProbe.enabled }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit $umami.readinessProbe "enabled") "context" $) | nindent 12 }}
+          {{- else if $umami.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" $umami.customReadinessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if $umami.startupProbe.enabled }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit $umami.startupProbe "enabled") "context" $) | nindent 12 }}
+          {{- else if $umami.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" $umami.customStartupProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- if $umami.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" $umami.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if $umami.extraVolumeMounts }}
+          volumeMounts:
+            {{- include "common.tplvalues.render" (dict "value" $umami.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+        {{- if $umami.sidecars }}
+        {{- include "common.tplvalues.render" ( dict "value" $umami.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      {{- if $umami.extraVolumes }}
+      volumes:
+        {{- include "common.tplvalues.render" (dict "value" $umami.extraVolumes "context" $) | nindent 8 }}
+      {{- end }}
