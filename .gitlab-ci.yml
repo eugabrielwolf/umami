@@ -1,0 +1,79 @@
+variables:
+  DOCKER_PUBLISH_NAMESPACE: zeroback
+  DOCKER_PUBLISH_NAME: umami-mongodb
+  DATABASE_TYPE: mongodb
+  BASE_PATH: "/umami"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+stages:
+  - build
+  - deploy
+  - cleanup
+
+.yarn-cache:
+  variables:
+    YARN_CACHE_FOLDER: $CI_PROJECT_DIR/.yarn-cache
+    NODE_OPTIONS: "--use-openssl-ca"
+  cache:
+    - key:
+        files:
+          - node/yarn.lock
+      paths:
+        - $YARN_CACHE_FOLDER
+
+default:
+  before_script:
+    - '[ -x /tmp/ci-result-push.exe ] && /tmp/ci-result-push.exe STAGE_ENTER || true'
+  after_script:
+    - '[ -x /tmp/ci-result-push.exe ] && /tmp/ci-result-push.exe STAGE_LEAVE || true'
+
+cleanup_send_success_result_job:
+  stage: cleanup
+  script:
+    - '[ -x /tmp/ci-result-push.exe ] && /tmp/ci-result-push.exe SUCCESS || true'
+  when: on_success
+
+cleanup_send_failed_result_job:
+  stage: cleanup
+  script:
+    - '[ -x /tmp/ci-result-push.exe ] && /tmp/ci-result-push.exe FAILURE || true'
+  when: on_failure
+
+build_next:
+  stage: build
+  image: node:18-alpine
+  script:
+    - yarn install
+    - mkdir -p ./.yarn/unplugged/esbuild-npm-0.17.19-f690397756/node_modules/esbuild/lib/pnpapi-@netlify/
+    - yarn build-docker
+  artifacts:
+    paths:
+      - prisma
+      - geo
+      - .next
+      - public/script.js
+
+deploy_standalone:
+  stage: deploy
+  only:
+    - tags
+  needs:
+    - job: 'build_next'
+      artifacts: true
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  before_script:
+    - '[[ "$CI_COMMIT_TAG" =~ ^v ]] && export IMAGE_VERSION="${CI_COMMIT_TAG#v}" || export IMAGE_VERSION="${CI_COMMIT_TAG:-commit-${CI_COMMIT_SHORT_SHA}}"'
+    - '[[ "$CI_COMMIT_TAG" =~ ^v ]] && export PACKAGE_VERSION="${CI_COMMIT_TAG#v}" || export PACKAGE_VERSION=""'
+    - export DOCKER_IMAGE_PATH="$DOCKER_REGISTRY_SERVER/$DOCKER_PUBLISH_NAMESPACE/$DOCKER_PUBLISH_NAME:$IMAGE_VERSION"
+  script:
+    - mkdir -p /kaniko/.docker
+    - '[ -z "$DOCKER_REGISTRY_CONFIG_BASE64" ] || echo "$DOCKER_REGISTRY_CONFIG_BASE64" | base64 -d >> /kaniko/.docker/config.json'
+    - >
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/zeron.Dockerfile
+      --build-arg "BASE_PATH=${BASE_PATH}"
+      --destination $DOCKER_IMAGE_PATH
+      $KANIKO_ADD_OPTIONS
