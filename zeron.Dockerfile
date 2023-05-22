@@ -16,7 +16,7 @@ COPY package.json ./package.json
 COPY prisma ./prisma
 COPY scripts ./scripts
 
-COPY docker-wrapper.sh /docker-wrapper.sh
+COPY ["docker-wrapper.sh", "make-db-url.js", "/"]
 RUN chmod +x /docker-wrapper.sh
 
 # Automatically leverage output traces to reduce image size
