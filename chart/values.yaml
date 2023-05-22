@@ -71,8 +71,8 @@ basePath: "/umami"
 
 image:
   registry: zm-private-docker.zeronsoftn.com
-  repository: zeroback/umami-mongodb:2.2.0-zeron01-rc2
-  tag: "2.2.0-zeron01-rc2"
+  repository: zeroback/umami-mongodb
+  tag: "2.2.0-zeron01-rc3"
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []
