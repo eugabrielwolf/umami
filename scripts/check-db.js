@@ -95,7 +95,7 @@ async function checkV1Tables() {
 
 async function applyMigration() {
   if (databaseType === 'mongodb') {
-    console.log(execSync('prisma db push').toString());
+    console.log(execSync('prisma db push --skip-generate').toString());
   } else {
     console.log(execSync('prisma migrate deploy').toString());
   }
