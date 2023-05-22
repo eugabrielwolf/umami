@@ -50,7 +50,7 @@ model Website {
   id        String    @id @map("_id") @db.String
   name      String    @db.String
   domain    String?   @db.String
-  shareId   String?   @unique @map("share_id") @db.String
+  shareId   String?   @map("share_id") @db.String
   resetAt   DateTime? @map("reset_at") @db.Date
   userId    String?   @map("user_id") @db.String
   createdAt DateTime? @default(now()) @map("created_at") @db.Date
