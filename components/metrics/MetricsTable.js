@@ -4,7 +4,7 @@ import Link from 'next/link';
 import firstBy from 'thenby';
 import classNames from 'classnames';
 import useApi from 'hooks/useApi';
-import { percentFilter } from 'lib/filters';
+import {percentFilter} from 'lib/filters';
 import useDateRange from 'hooks/useDateRange';
 import usePageQuery from 'hooks/usePageQuery';
 import ErrorMessage from 'components/common/ErrorMessage';
@@ -56,7 +56,7 @@ export function MetricsTable({
       }),
     { onSuccess: onDataLoad, retryDelay: delay || DEFAULT_ANIMATION_DURATION },
   );
-
+  let subLabel = ""
   const filteredData = useMemo(() => {
     if (data) {
       let items = percentFilter(dataFilter ? dataFilter(data, filterOptions) : data);
@@ -71,12 +71,14 @@ export function MetricsTable({
     return [];
   }, [data, error, dataFilter, filterOptions]);
   const { dir } = useLocale();
-
+  if( type === "url"){
+      subLabel = "Average visit time"
+  }
   return (
     <div className={classNames(styles.container, className)}>
       {!data && isLoading && !isFetched && <Loading icon="dots" />}
       {error && <ErrorMessage />}
-      {data && !error && <DataTable {...props} data={filteredData} className={className} />}
+      {data && !error && <DataTable {...props} data={filteredData} className={className} subLabel={subLabel} />}
       <div className={styles.footer}>
         {data && !error && limit && (
           <Link href={router.pathname} as={resolveUrl({ view: type })}>

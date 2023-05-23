@@ -147,20 +147,19 @@ async function mongodbQuery(
       },
       {
         $project: {
-          session_id: '$session_id',
+          session_id: 1,
           hour: {
             $toString: { $hour: '$created_at' },
           },
-          created_at: '$created_at',
+          created_at: 1,
         },
       },
       {
         $group: {
           _id: {
-            $concat: ['$session_id', ':', '$hour'],
+            session_id: "$session_id",
+            hour: "$hour",
           },
-          session_id: { $first: '$session_id' },
-          hour: { $first: '$hour' },
           count: { $sum: 1 },
           timeMax: { $max: '$created_at' },
           timeMin: { $min: '$created_at' },
@@ -168,10 +167,10 @@ async function mongodbQuery(
       },
       {
         $project: {
-          _id: '$_id',
-          session_id: '$session_id',
-          hour: '$hour',
-          count: '$count',
+          _id: 0,
+          session_id: "$_id.session_id",
+          hour: "$_id.hour",
+          count: 1,
           time: {
             $dateDiff: {
               endDate: '$timeMax',

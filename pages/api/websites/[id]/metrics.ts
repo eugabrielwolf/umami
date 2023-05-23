@@ -1,10 +1,10 @@
 import { NextApiResponse } from 'next';
 import { methodNotAllowed, ok, unauthorized } from 'next-basics';
-import { WebsiteMetric, NextApiRequestQueryBody } from 'lib/types';
+import { NextApiRequestQueryBody, WebsiteMetric } from 'lib/types';
 import { canViewWebsite } from 'lib/auth';
 import { useAuth, useCors } from 'lib/middleware';
-import { SESSION_COLUMNS, EVENT_COLUMNS, FILTER_COLUMNS } from 'lib/constants';
-import { getPageviewMetrics, getSessionMetrics } from 'queries';
+import { EVENT_COLUMNS, FILTER_COLUMNS, SESSION_COLUMNS } from 'lib/constants';
+import { getPageviewMetrics, getSessionMetrics, getUrlStats } from 'queries';
 
 export interface WebsiteMetricsRequestQuery {
   id: string;
@@ -113,17 +113,42 @@ export default async (
       };
 
       filters[type] = undefined;
-
       const data = await getPageviewMetrics(websiteId, {
         startDate,
         endDate,
         column,
         filters,
       });
-
+      if (column == "url_path") {
+        const statMap = (await getUrlStats(websiteId, {
+          startDate,
+          endDate,
+          filters: {
+            url,
+            referrer,
+            title,
+            query,
+            event,
+            os,
+            browser,
+            device,
+            country,
+            region,
+            city,
+          },
+        })).reduce(function (map, obj) {
+          map[obj["_id"]] = obj;
+          return map;
+        }, {})
+        if(data.length !==0 ) {
+          for(const obj of data){
+            obj["avgVisitT"] = statMap[obj["x"]]
+          }
+        }
+      }
       return ok(res, data);
     }
-  }
 
-  return methodNotAllowed(res);
-};
+    return methodNotAllowed(res);
+  }
+}
