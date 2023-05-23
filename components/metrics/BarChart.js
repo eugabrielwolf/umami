@@ -177,11 +177,14 @@ export function BarChart({
   const updateChart = () => {
     setTooltip(null);
 
-    datasets.forEach((dataset, index) => {
-      chart.current.data.datasets[index].data = dataset.data;
-      chart.current.data.datasets[index].label = dataset.label;
-    });
-
+    if(chart.current.data.datasets.length ===0 || datasets.length === 0){
+      chart.current.data.datasets = datasets
+    } else {
+      datasets.forEach((dataset, index) => {
+        chart.current.data.datasets[index].data = dataset.data;
+        chart.current.data.datasets[index].label = dataset.label;
+      });
+    }
     chart.current.options = getOptions();
 
     onUpdate(chart.current);

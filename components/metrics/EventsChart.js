@@ -16,8 +16,8 @@ export function EventsChart({ websiteId, className, token }) {
   const {
     query: { url, eventName },
   } = usePageQuery();
-
-  const { data, isLoading } = useQuery(['events', websiteId, modified, eventName], () =>
+  const modifiedWithUrl = modified + url
+  const { data, isLoading } = useQuery(['events', websiteId, modifiedWithUrl, eventName], () =>
     get(`/websites/${websiteId}/events`, {
       startAt: +startDate,
       endAt: +endDate,

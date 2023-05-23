@@ -66,6 +66,7 @@ export default async (
         country,
         region,
         city,
+        url
       };
 
       filters[type] = undefined;
